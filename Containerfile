@@ -40,6 +40,434 @@ RUN --mount=type=cache,dst=/var/cache \
     --mount=type=cache,dst=/var/log \
     --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
+    mkdir -p /var/roothome && \
+    dnf5 -y install dnf5-plugins && \
+    for copr in \
+        ublue-os/bazzite \
+        ublue-os/bazzite-multilib \
+        ublue-os/staging \
+        ublue-os/packages \
+        ublue-os/obs-vkcapture \
+        ycollet/audinux \
+        ublue-os/hhd \
+        lizardbyte/beta \
+        che/nerd-fonts; \
+    do \
+        echo "Enabling copr: $copr"; \
+        dnf5 -y copr enable $copr; \
+        dnf5 -y config-manager setopt copr:copr.fedorainfracloud.org:${copr////:}.priority=98 ;\
+    done && unset -v copr && \
+    dnf5 -y install --nogpgcheck --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever' terra-release{,-extras,-mesa} && \
+    dnf5 -y config-manager addrepo --overwrite --from-repofile=https://pkgs.tailscale.com/stable/fedora/tailscale.repo && \
+    dnf5 -y install \
+        https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
+        https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm && \
+    sed -i 's@enabled=0@enabled=1@g' /etc/yum.repos.d/negativo17-fedora-multimedia.repo && \
+    dnf5 -y config-manager addrepo --from-repofile=https://negativo17.org/repos/fedora-steam.repo && \
+    dnf5 -y config-manager addrepo --from-repofile=https://negativo17.org/repos/fedora-rar.repo && \
+    dnf5 -y config-manager addrepo --from-repofile=https://pkg.surfacelinux.com/fedora/linux-surface.repo && \
+    sed -i 's|baseurl=https://pkg.surfacelinux.com/fedora/f\$releasever/|baseurl=https://pkg.surfacelinux.com/fedora/f42/|' /etc/yum.repos.d/linux-surface.repo && \
+    dnf5 -y config-manager setopt "linux-surface".enabled=false && \
+    dnf5 -y config-manager setopt "*bazzite*".priority=1 && \
+    dnf5 -y config-manager setopt "*terra*".priority=3 "*terra*".exclude="nerd-fonts topgrade scx-tools scx-scheds steam python3-protobuf zlib-devel" && \
+    dnf5 -y config-manager setopt "terra-mesa".enabled=false && \
+    eval "$(/ctx/dnf5-setopt setopt '*negativo17*' priority=4 exclude='mesa-* *xone*')" && \
+    dnf5 -y config-manager setopt "*rpmfusion*".priority=5 "*rpmfusion*".exclude="mesa-*" && \
+    dnf5 -y config-manager setopt "*fedora*".exclude="mesa-* kernel-core-* kernel-modules-* kernel-uki-virt-*" && \
+    dnf5 -y config-manager setopt "*staging*".exclude="scx-tools scx-scheds kf6-* mesa* mutter*" && \
+    /ctx/cleanup
+
+# Install kernel
+RUN --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=bind,from=kernel,src=/,dst=/rpms/kernel \
+    --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=tmpfs,dst=/tmp \
+    /ctx/install-kernel && \
+    dnf5 -y config-manager setopt "*rpmfusion*".enabled=0 && \
+    rm -rf /.git && \
+    dnf5 -y remove --no-autoremove \
+        linux-firmware-whence \
+        qcom-wwan-firmware \
+        linux-firmware \
+        amd-gpu-firmware \
+        amd-ucode-firmware \
+        atheros-firmware \
+        brcmfmac-firmware \
+        cirrus-audio-firmware \
+        intel-audio-firmware \
+        intel-gpu-firmware \
+        intel-vsc-firmware \
+        iwlegacy-firmware \
+        iwlwifi-dvm-firmware \
+        iwlwifi-mvm-firmware \
+        libertas-firmware \
+        mt7xxx-firmware \
+        nvidia-gpu-firmware \
+        nxpwireless-firmware \
+        realtek-firmware \
+        tiwilink-firmware && \
+    dnf5 -y install \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/linux-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/linux-firmware-whence-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/iwlwifi-mld-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/iwlwifi-dvm-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/amd-gpu-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/amd-ucode-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/atheros-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/brcmfmac-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/cirrus-audio-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/intel-audio-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/intel-gpu-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/intel-vsc-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/iwlegacy-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/iwlwifi-mvm-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/libertas-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/mt7xxx-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/nvidia-gpu-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/nxpwireless-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/qcom-wwan-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/realtek-firmware-20260309-1.fc45.noarch.rpm \
+        https://kojipkgs.fedoraproject.org/packages/linux-firmware/20260309/1.fc45/noarch/tiwilink-firmware-20260309-1.fc45.noarch.rpm && \
+    /ctx/cleanup
+
+# Install patched fwupd
+# Install Valve's patched Mesa, Pipewire, Bluez, and Xwayland
+RUN --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=tmpfs,dst=/tmp \
+    dnf5 -y install --enable-repo="linux-surface" --allowerasing \
+        iptsd \
+        libwacom-surface && \
+    dnf5 -y remove \
+        pipewire-config-raop \
+        mesa-va-drivers && \
+    declare -A toswap=( \
+        ["copr:copr.fedorainfracloud.org:ublue-os:bazzite"]="wireplumber" \
+        ["copr:copr.fedorainfracloud.org:ublue-os:bazzite-multilib"]="pipewire bluez xorg-x11-server-Xwayland NetworkManager" \
+        ["terra-mesa"]="mesa-filesystem" \
+        ["copr:copr.fedorainfracloud.org:ublue-os:staging"]="fwupd" \
+    ) && \
+    for repo in "${!toswap[@]}"; do \
+        for package in ${toswap[$repo]}; do dnf5 -y swap --from-repo=$repo $package $package; done; \
+    done && unset -v toswap repo package && \
+    dnf5 versionlock add \
+        pipewire \
+        pipewire-alsa \
+        pipewire-gstreamer \
+        pipewire-jack-audio-connection-kit \
+        pipewire-jack-audio-connection-kit-libs \
+        pipewire-libs \
+        pipewire-plugin-libcamera \
+        pipewire-pulseaudio \
+        pipewire-utils \
+        wireplumber \
+        wireplumber-libs \
+        bluez \
+        bluez-cups \
+        bluez-libs \
+        bluez-obexd \
+        xorg-x11-server-Xwayland \
+        mesa-dri-drivers \
+        mesa-filesystem \
+        mesa-libEGL \
+        mesa-libGL \
+        mesa-libgbm \
+        mesa-vulkan-drivers \
+        fwupd \
+        fwupd-plugin-flashrom \
+        fwupd-plugin-modem-manager \
+        fwupd-plugin-uefi-capsule-data \
+        NetworkManager \
+        NetworkManager-wifi \
+        NetworkManager-libnm && \
+    dnf5 -y install \
+        libfreeaptx && \
+    dnf5 -y install --enable-repo="*rpmfusion*" --disable-repo="*fedora-multimedia*" \
+        libaacs \
+        libbdplus \
+        libbluray \
+        libbluray-utils && \
+    /ctx/cleanup
+
+# Remove unneeded packages
+RUN --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=tmpfs,dst=/tmp \
+    dnf5 -y remove \
+        ublue-os-update-services \
+        firefox \
+        firefox-langpacks \
+        toolbox \
+        htop && \
+    /ctx/cleanup
+
+# Install new packages
+RUN --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=tmpfs,dst=/tmp \ 
+    --mount=type=secret,id=GITHUB_TOKEN \
+    dnf5 -y install \
+        $(/ctx/ghcurl https://api.github.com/repos/ublue-os/cicpoffs/releases/latest | jq -r '.assets[] | select(.name| test(".*rpm$")).browser_download_url') && \
+    dnf5 -y copr enable bieszczaders/kernel-cachyos-addons && \
+    dnf5 -y install \
+        scx-scheds \
+        scx-tools && \
+    dnf5 -y copr disable bieszczaders/kernel-cachyos-addons && \
+    dnf5 -y install \
+        uld \
+        bazaar \
+        iwd \
+        greenboot \
+        greenboot-default-health-checks \
+        ScopeBuddy \
+        twitter-twemoji-fonts \
+        google-noto-sans-cjk-fonts \
+        lato-fonts \
+        fira-code-fonts \
+        nerd-fonts \
+        Sunshine \
+        python3-pip \
+        libadwaita \
+        bees \
+        xwininfo \
+        usbip \
+        compsize \
+        ryzenadj \
+        ddcutil \
+        input-remapper \
+        libinput-utils \
+        i2c-tools \
+        lm_sensors \
+        iio-sensor-proxy \
+        fw-ectool \
+        fw-fanctrl \
+        framework-system \
+        udica \
+        ladspa-caps-plugins \
+        ladspa-noise-suppression-for-voice \
+        pipewire-module-filter-chain-sofa \
+        python3-icoextract \
+        tailscale \
+        webapp-manager \
+        btop \
+        duf \
+        fish \
+        lshw \
+        xdotool \
+        wmctrl \
+        libcec \
+        v4l-utils \
+        yad \
+        f3 \
+        pulseaudio-utils \
+        lzip \
+        p7zip \
+        p7zip-plugins \
+        rar \
+        libxcrypt-compat \
+        vulkan-tools \
+        xwiimote-ng \
+        fastfetch \
+        glow \
+        gum \
+        vim \
+        cockpit-networkmanager \
+        cockpit-podman \
+        cockpit-selinux \
+        cockpit-system \
+        cockpit-files \
+        cockpit-storaged \
+        topgrade \
+        ydotool \
+        stress-ng \
+        snapper \
+        btrfs-assistant \
+        edk2-ovmf \
+        qemu \
+        libvirt \
+        guestfs-tools \
+        lsb_release \
+        uupd \
+        ds-inhibit \
+        rocm-hip \
+        rocm-opencl \
+        rocm-clinfo \
+        waydroid \
+        cage \
+        wlr-randr \
+        bazzite-portal \
+        ls-iommu && \
+    systemctl mask iscsi && \
+    systemctl mask wpa_supplicant.service && \
+    systemctl disable iwd.service && \
+    chmod +x /usr/bin/framework_tool && \
+    sed -i 's|uupd|& --disable-module-distrobox|' /usr/lib/systemd/system/uupd.service && \
+    setcap 'cap_sys_admin+p' $(readlink -f /usr/bin/sunshine) && \
+    dnf5 -y --setopt=install_weak_deps=False install \
+        rocm-hip \
+        rocm-opencl \
+        rocm-clinfo \
+        rocm-smi && \
+    mkdir -p /etc/xdg/autostart && \
+    sed -i~ -E 's/=.\$\(command -v (nft|ip6?tables-legacy).*/=/g' /usr/lib/waydroid/data/scripts/waydroid-net.sh && \
+    sed -i 's/ --xdg-runtime=\\"${XDG_RUNTIME_DIR}\\"//g' /usr/bin/btrfs-assistant-launcher && \
+    /ctx/cleanup
+
+# ublue-os-media-automount-udev, mount non-removable device partitions automatically under /media/media-automount/
+RUN --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=tmpfs,dst=/tmp \
+    dnf5 install -y --enable-repo=copr:copr.fedorainfracloud.org:ublue-os:packages \
+        ublue-os-media-automount-udev && \
+    { systemctl enable ublue-os-media-automount.service || true; } && \
+    /ctx/cleanup
+
+# Cleanup & Finalize
+COPY system_files/overrides /
+
+RUN --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=tmpfs,dst=/tmp \
+    --mount=type=secret,id=GITHUB_TOKEN \
+    rm -f /etc/profile.d/toolbox.sh && \
+    mkdir -p /var/tmp && chmod 1777 /var/tmp && \
+    cp --no-dereference --preserve=links /usr/lib/libdrm.so.2 /usr/lib/libdrm.so && \
+    cp --no-dereference --preserve=links /usr/lib64/libdrm.so.2 /usr/lib64/libdrm.so && \
+    sed -i 's@/usr/bin/steam@/usr/bin/bazzite-steam@g' /usr/share/applications/steam.desktop && \
+    sed -i 's@Exec=steam steam://open/bigpicture@Exec=/usr/bin/bazzite-steam-bpm@g' /usr/share/applications/steam.desktop && \
+    sed -i 's|^Exec=lutris %U$|Exec=env PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python lutris %U|' /usr/share/applications/net.lutris.Lutris.desktop && \
+    mkdir -p /etc/skel/.config/autostart/ && \
+    cp "/usr/share/applications/steam.desktop" "/etc/skel/.config/autostart/steam.desktop" && \
+    sed -i 's@/usr/bin/bazzite-steam %U@/usr/bin/bazzite-steam -silent %U@g' /etc/skel/.config/autostart/steam.desktop && \
+    sed -i 's@\[Desktop Entry\]@\[Desktop Entry\]\nNoDisplay=true@g' /usr/share/applications/nvtop.desktop && \
+    sed -i 's@\[Desktop Entry\]@\[Desktop Entry\]\nNoDisplay=true@g' /usr/share/applications/btop.desktop && \
+    sed -i 's@\[Desktop Entry\]@\[Desktop Entry\]\nNoDisplay=true@g' /usr/share/applications/yad-icon-browser.desktop && \
+    sed -i 's/#UserspaceHID.*/UserspaceHID=true/' /etc/bluetooth/input.conf && \
+    sed -i "s|grub_probe\} --target=device /\`|grub_probe} --target=device /sysroot\`|g" /usr/bin/grub2-mkconfig && \
+    rm -f /usr/lib/systemd/system/service.d/50-keep-warm.conf && \
+    echo "import \"/usr/share/ublue-os/just/80-bazzite.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/81-bazzite-fixes.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/82-bazzite-apps.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/82-bazzite-beesd.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/82-bazzite-sunshine.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/82-bazzite-waydroid.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/83-bazzite-audio.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/85-bazzite-image.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/84-bazzite-virt.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/86-bazzite-windows.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/87-bazzite-framegen.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/88-bazzite-webapps.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/89-bazzite-mesa-git.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/90-bazzite-picker.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/90-bazzite-de.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/91-bazzite-decky.just\"" >> /usr/share/ublue-os/justfile && \
+    echo "import \"/usr/share/ublue-os/just/92-bazzite-verify.just\"" >> /usr/share/ublue-os/justfile && \
+    if grep -q "kinoite" <<< "${BASE_IMAGE_NAME}"; then \
+        systemctl enable usr-share-sddm-themes.mount && \
+        sed -i 's@Exec=/usr/bin/ptyxis@Exec=/usr/bin/kde-ptyxis@g' /usr/share/dbus-1/services/org.gnome.Ptyxis.service \
+    ; else \
+        mkdir -p "/usr/share/ublue-os/dconfs/desktop-silverblue/" && \
+        cp "/usr/share/glib-2.0/schemas/zz0-"*"-bazzite-desktop-silverblue-"*".gschema.override" "/usr/share/ublue-os/dconfs/desktop-silverblue/" && \
+        find "/etc/dconf/db/distro.d/" -maxdepth 1 -type f -exec cp {} "/usr/share/ublue-os/dconfs/desktop-silverblue/" \; && \
+        dconf-override-converter to-dconf "/usr/share/ublue-os/dconfs/desktop-silverblue/zz0-"*"-bazzite-desktop-silverblue-"*".gschema.override" && \
+        sed -i 's/\[org.gtk.Settings.FileChooser\]/\[org\/gtk\/settings\/file-chooser\]/g; s/\[org.gtk.gtk4.Settings.FileChooser\]/\[org\/gtk\/gtk4\/settings\/file-chooser\]/g' "/usr/share/ublue-os/dconfs/desktop-silverblue/zz0-00-bazzite-desktop-silverblue-global" && \
+        rm "/usr/share/ublue-os/dconfs/desktop-silverblue/zz0-"*"-bazzite-desktop-silverblue-"*".gschema.override" && \
+        mkdir -p /tmp/bazzite-schema-test && \
+        find "/usr/share/glib-2.0/schemas/" -type f ! -name "*.gschema.override" -exec cp {} "/tmp/bazzite-schema-test/" \; && \
+        cp "/usr/share/glib-2.0/schemas/zz0-"*".gschema.override" "/tmp/bazzite-schema-test/" && \
+        glib-compile-schemas --strict /tmp/bazzite-schema-test && \
+        glib-compile-schemas /usr/share/glib-2.0/schemas &>/dev/null && \
+        rm -r /tmp/bazzite-schema-test \
+    ; fi && \
+    sed -i 's/stage/none/g' /etc/rpm-ostreed.conf && \
+    for repo in \
+        fedora-cisco-openh264 \
+        fedora-steam \
+        fedora-rar \
+        google-chrome \
+        tailscale \
+        _copr_ublue-os-akmods \
+        terra \
+        terra-extras \
+        negativo17-fedora-uld \
+        negativo17-fedora-multimedia; \
+    do \
+        sed -i 's@enabled=1@enabled=0@g' /etc/yum.repos.d/$repo.repo; \
+    done && for copr in \
+        ublue-os/bazzite \
+        ublue-os/bazzite-multilib \
+        ublue-os/staging \
+        ublue-os/packages \
+        ublue-os/obs-vkcapture \
+        ycollet/audinux \
+        ublue-os/hhd \
+        lizardbyte/beta \
+        che/nerd-fonts; \
+    do \
+        dnf5 -y copr disable $copr; \
+    done && unset -v copr && \
+    eval "$(/ctx/dnf5-setopt setopt '*negativo17*' enabled=0)" && \
+    sed -i 's#/var/lib/selinux#/etc/selinux#g' /usr/lib/python3.*/site-packages/setroubleshoot/util.py && \
+    sed -i 's/power-saver=powersave$/power-saver=powersave-bazzite/' /etc/tuned/ppd.conf && \
+    sed -i 's/balanced=balanced$/balanced=balanced-bazzite/' /etc/tuned/ppd.conf && \
+    sed -i 's/performance=throughput-performance$/performance=throughput-performance-bazzite/' /etc/tuned/ppd.conf && \
+    sed -i 's/balanced=balanced-battery$/balanced=balanced-battery-bazzite\npower-saver=powersave-battery-bazzite/' /etc/tuned/ppd.conf && \
+    ln -s /usr/bin/true /usr/bin/pulseaudio && \
+    mkdir -p /etc/flatpak/remotes.d && \
+    curl --retry 3 -Lo /etc/flatpak/remotes.d/flathub.flatpakrepo https://dl.flathub.org/repo/flathub.flatpakrepo && \
+    systemctl enable brew-setup.service && \
+    systemctl disable fw-fanctrl.service && \
+    systemctl disable scx_loader.service && \
+    systemctl enable input-remapper.service && \
+    systemctl enable bazzite-flatpak-manager.service && \
+    systemctl disable rpm-ostreed-automatic.timer && \
+    systemctl enable uupd.timer && \
+    systemctl enable incus-workaround.service && \
+    systemctl enable bazzite-hardware-setup.service && \
+    systemctl disable tailscaled.service && \
+    systemctl enable dev-hugepages1G.mount && \
+    systemctl enable ds-inhibit.service && \
+    systemctl --global enable bazzite-user-setup.service && \
+    systemctl --global enable podman.socket && \
+    systemctl --global enable systemd-tmpfiles-setup.service && \
+    systemctl --global disable sunshine.service && \
+    systemctl disable waydroid-container.service && \
+    systemctl enable greenboot-healthcheck.service && \
+    systemctl enable greenboot-set-rollback-trigger.service && \
+    systemctl disable force-wol.service && \
+    systemctl --global enable bazzite-dynamic-fixes.service && \
+    systemctl --global enable ntfs-nag.service && \
+    /ctx/ghcurl "https://raw.githubusercontent.com/doitsujin/dxvk/master/dxvk.conf" -Lo /etc/dxvk-example.conf && \
+    /ctx/ghcurl "https://raw.githubusercontent.com/ublue-os/waydroid-scripts/main/waydroid-choose-gpu.sh" -Lo /usr/bin/waydroid-choose-gpu && \
+    chmod +x /usr/bin/waydroid-choose-gpu && \
+    dnf5 config-manager setopt skip_if_unavailable=1 && \
+    /ctx/ghcurl "https://github.com/ublue-os/toolboxes/raw/refs/heads/main/apps/docker/distrobox.ini" -Lo /etc/distrobox/docker.ini && \
+    setfattr -n user.component -v "toolbox-config" /etc/distrobox/docker.ini && \
+    /ctx/ghcurl "https://github.com/ublue-os/toolboxes/raw/refs/heads/main/apps/incus/distrobox.ini" -Lo /etc/distrobox/incus.ini && \
+    setfattr -n user.component -v "toolbox-config" /etc/distrobox/incus.ini && \
+    /ctx/ghcurl "https://raw.githubusercontent.com/ublue-os/bash-preexec/master/bash-preexec.sh" -Lo /usr/share/bash-prexec && \
+    setfattr -n user.component -v "bash-preexec" /usr/share/bash-prexec && \
+    /ctx/image-info && \
+    /ctx/build-initramfs && \
+    /ctx/finalize
+
+RUN bootc container lint
+
+################
+# DECK BUILDS
+################
+
+# Setup Copr repos
+RUN --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=tmpfs,dst=/tmp \
     dnf5 -y copr enable ublue-os/staging && \
     dnf5 -y copr enable ublue-os/packages && \
     dnf5 -y copr enable ublue-os/bazzite && \
