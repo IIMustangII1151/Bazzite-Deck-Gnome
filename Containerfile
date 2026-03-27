@@ -35,9 +35,6 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/build.sh
 
-RUN mkdir -p /etc/gdm && \
-    printf "[daemon]\nAutomaticLoginEnable=True\nAutomaticLogin=mustang\n" > /etc/gdm/custom.conf
-
 ### LINTING
 ## Verify final image and contents are correct.
 RUN bootc container lint
