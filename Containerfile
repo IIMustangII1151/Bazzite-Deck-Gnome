@@ -37,7 +37,10 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
 
 RUN mkdir -p /etc/systemd/system/getty@tty1.service.d && \
     printf "[Service]\nExecStart=\nExecStart=-/usr/sbin/agetty --autologin mustang --noclear %%I $TERM\n" > /etc/systemd/system/getty@tty1.service.d/autologin.conf
-    
+
+RUN mkdir -p /etc/gdm && \
+    printf "[daemon]\nAutomaticLoginEnable=True\nAutomaticLogin=mustang\n" > /etc/gdm/custom.conf
+
 ### LINTING
 ## Verify final image and contents are correct.
 RUN bootc container lint
