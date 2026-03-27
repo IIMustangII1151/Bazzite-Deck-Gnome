@@ -34,6 +34,9 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/log \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/build.sh
+
+RUN mkdir -p /etc/systemd/system/getty@tty1.service.d && \
+    printf "[Service]\nExecStart=\nExecStart=-/usr/sbin/agetty --autologin mustang --noclear %%I $TERM\n" > /etc/systemd/system/getty@tty1.service.d/autologin.conf
     
 ### LINTING
 ## Verify final image and contents are correct.
