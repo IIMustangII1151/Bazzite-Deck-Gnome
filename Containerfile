@@ -53,17 +53,13 @@ RUN dnf5 remove -y \
 #REMOVE EXTENSIONS
 ##################
 
-RUN dnf5 remove -y \
-  gnome-shell-extension-gsconnect 
+RUN rm -rf /usr/share/gnome-shell/extensions/*
 
 ##################
  #REMOVE FLATPAK
 ##################
 
-RUN flatpak uninstall -y \
-    com.discordapp.Discord \
-    com.heroicgameslauncher.hgl \
-    net.lutris.Lutris || true
+RUN flatpak uninstall -y --all || true
 
 ### LINTING
 ## Verify final image and contents are correct.
