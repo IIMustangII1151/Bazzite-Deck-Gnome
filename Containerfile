@@ -29,15 +29,41 @@ FROM ghcr.io/ublue-os/bazzite-deck-gnome:stable
 ## make modifications desired in your image and install packages by modifying the build.sh script
 ## the following RUN directive does all the things required to run "build.sh" as recommended.
 
-RUN dnf5 remove -y \
-    lutris \
-    && dnf5 autoremove -y
-
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache \
     --mount=type=cache,dst=/var/log \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/build.sh
+
+##################
+   #REMOVE RPM
+##################
+
+RUN dnf5 remove -y \
+    lutris \
+    nautilus-gsconnect \
+    rom-properties-gtk4 \
+    Sunshine \
+    tailscale \
+    waydroid \
+    webapp-manager \
+    && dnf5 autoremove -y
+
+##################
+#REMOVE EXTENSIONS
+##################
+
+RUN dnf5 remove -y \
+  gnome-shell-extension-gsconnect 
+
+##################
+ #REMOVE FLATPAK
+##################
+
+RUN flatpak uninstall -y \
+    com.discordapp.Discord \
+    com.heroicgameslauncher.hgl \
+    net.lutris.Lutris || true
 
 ### LINTING
 ## Verify final image and contents are correct.
