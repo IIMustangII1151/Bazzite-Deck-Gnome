@@ -40,6 +40,7 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
 ##################
 
 RUN dnf5 remove -y \
+    firewall-config \
     lutris \
     nautilus-gsconnect \
     rom-properties-gtk4 \
@@ -48,6 +49,8 @@ RUN dnf5 remove -y \
     waydroid \
     webapp-manager \
     && dnf5 autoremove -y
+
+RUN rm -f /usr/share/applications/waydroid-restart-container.desktop
 
 ##################
 #REMOVE EXTENSIONS
